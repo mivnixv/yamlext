@@ -332,3 +332,142 @@ fn indent_content(content: &str, prefix: &str) -> String {
 
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    fn tmp_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("yamlext_test_{}_{}", std::process::id(), name));
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn write(dir: &Path, name: &str, content: &str) -> PathBuf {
+        let path = dir.join(name);
+        fs::write(&path, content).unwrap();
+        path
+    }
+
+    fn run(content: &str, dir: &Path) -> String {
+        let mut seen = HashSet::new();
+        process(content, dir, &mut seen).unwrap()
+    }
+
+    // --- !include whole file ---
+
+    #[test]
+    fn include_whole_file() {
+        let dir = tmp_dir("include_whole_file");
+        write(&dir, "child.yaml", "foo: bar\nbaz: 1\n");
+        let out = run("root:\n  data: !include child.yaml\n", &dir);
+        assert!(out.contains("foo: bar"), "got: {out}");
+        assert!(out.contains("baz: 1"), "got: {out}");
+    }
+
+    // --- !include with key path extraction ---
+
+    #[test]
+    fn include_key_path() {
+        let dir = tmp_dir("include_key_path");
+        write(&dir, "addr.yaml", "address:\n  city: Wonderland\n  zip: 12345\n");
+        let out = run("city: !include [addr.yaml, \"address/city\"]\n", &dir);
+        assert_eq!(out.trim(), "city: Wonderland");
+    }
+
+    // --- !include standalone (no key prefix) ---
+
+    #[test]
+    fn include_standalone() {
+        let dir = tmp_dir("include_standalone");
+        write(&dir, "items.yaml", "- alpha\n- beta\n");
+        let out = run("!include items.yaml\n", &dir);
+        assert!(out.contains("- alpha"), "got: {out}");
+        assert!(out.contains("- beta"), "got: {out}");
+    }
+
+    // --- indentation is preserved ---
+
+    #[test]
+    fn include_preserves_indent() {
+        let dir = tmp_dir("include_preserves_indent");
+        write(&dir, "db.yaml", "host: localhost\nport: 5432\n");
+        let out = run("jobs:\n  build:\n    config: !include db.yaml\n", &dir);
+        assert!(out.contains("    config:"), "got: {out}");
+        assert!(out.contains("      host: localhost"), "got: {out}");
+    }
+
+    // --- !merge mappings (deep) ---
+
+    #[test]
+    fn merge_mappings() {
+        let dir = tmp_dir("merge_mappings");
+        write(&dir, "base.yaml", "db:\n  host: localhost\n  port: 5432\n");
+        write(&dir, "override.yaml", "db:\n  host: prod.example.com\n");
+        let out = run("merged: !merge [base.yaml, override.yaml]\n", &dir);
+        assert!(out.contains("host: prod.example.com"), "got: {out}");
+        assert!(out.contains("port: 5432"), "got: {out}");
+    }
+
+    // --- !merge sequences (concatenation) ---
+
+    #[test]
+    fn merge_sequences() {
+        let dir = tmp_dir("merge_sequences");
+        write(&dir, "a.yaml", "- apple\n- banana\n");
+        write(&dir, "b.yaml", "- cherry\n- date\n");
+        let out = run("all: !merge [a.yaml, b.yaml]\n", &dir);
+        assert!(out.contains("apple"), "got: {out}");
+        assert!(out.contains("cherry"), "got: {out}");
+    }
+
+    // --- !merge standalone at root ---
+
+    #[test]
+    fn merge_standalone_root() {
+        let dir = tmp_dir("merge_standalone_root");
+        write(&dir, "p.yaml", "- one\n");
+        write(&dir, "q.yaml", "- two\n");
+        let out = run("!merge [p.yaml, q.yaml]\n", &dir);
+        assert!(out.contains("one"), "got: {out}");
+        assert!(out.contains("two"), "got: {out}");
+    }
+
+    // --- recursive includes ---
+
+    #[test]
+    fn recursive_include() {
+        let dir = tmp_dir("recursive_include");
+        write(&dir, "inner.yaml", "value: 42\n");
+        write(&dir, "mid.yaml", "data: !include inner.yaml\n");
+        let out = run("top: !include mid.yaml\n", &dir);
+        assert!(out.contains("value: 42"), "got: {out}");
+    }
+
+    // --- circular include is detected ---
+
+    #[test]
+    fn circular_include_detected() {
+        let dir = tmp_dir("circular_include_detected");
+        write(&dir, "a.yaml", "!include b.yaml\n");
+        write(&dir, "b.yaml", "!include a.yaml\n");
+        let mut seen = HashSet::new();
+        let result = load_file(&dir.join("a.yaml"), &mut seen, &dir);
+        assert!(result.is_err());
+        assert!(
+            result.unwrap_err().to_string().contains("Circular"),
+            "expected Circular error"
+        );
+    }
+
+    // --- comments and non-tag lines pass through unchanged ---
+
+    #[test]
+    fn passthrough_unchanged() {
+        let dir = tmp_dir("passthrough_unchanged");
+        let input = "# comment\nfoo: bar\nbaz: 123\n";
+        let out = run(input, &dir);
+        assert_eq!(out, input);
+    }
+}

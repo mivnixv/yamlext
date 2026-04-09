@@ -52,6 +52,10 @@ jobs:
         if: matrix.cross
         run: cargo install cross --locked
 
+      - name: Run tests
+        if: '!matrix.cross'
+        run: cargo test --release --target ${{ matrix.target }}
+
       - name: Build (cross)
         if: matrix.cross
         run: cross build --release --target ${{ matrix.target }}
