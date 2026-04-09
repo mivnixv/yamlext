@@ -1,4 +1,5 @@
-# yamlext
+# yamlext ![Tests](https://img.shields.io/github/actions/workflow/status/mivnixv/yamlext/ci.yml?branch=main)
+
 
 A CLI tool that extends YAML with `!include` and `!merge` custom tags.
 
