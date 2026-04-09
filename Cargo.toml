@@ -9,7 +9,7 @@ name = "yamlext"
 path = "src/main.rs"
 
 [dependencies]
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", features = ["derive", "cargo"] }
 serde_yaml = "0.9"
 anyhow = "1"
 regex = "1"

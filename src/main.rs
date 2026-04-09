@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
-#[command(name = "yamlext", about = "YAML processor with !include and !merge tags")]
+#[command(name = "yamlext", about = "YAML processor with !include and !merge tags", version = env!("CARGO_PKG_VERSION"))]
 struct Cli {
     /// Input YAML file to process
     input: PathBuf,
