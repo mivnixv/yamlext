@@ -1,6 +1,7 @@
 use anyhow::{bail, Context, Result};
 use clap::Parser;
 use serde_yaml::Value;
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -42,14 +43,111 @@ fn main() -> Result<()> {
         (content, base_dir)
     };
 
-    let label = if cli.input == "-" { "<stdin>".to_string() } else { cli.input.clone() };
-    let value: Value = parse_yaml(&content, &label)?;
+    let label = if cli.input == "-" {
+        "<stdin>".to_string()
+    } else {
+        cli.input.clone()
+    };
+
+    let content = inject_anchor_preamble(&content, &base_dir);
+    let mut value: Value = parse_yaml(&content, &label)?;
+    strip_anchor_preamble(&mut value);
     let resolved = resolve(value, &base_dir)?;
 
     print!("{}", serde_yaml::to_string(&resolved)?);
 
     Ok(())
 }
+
+// ---------------------------------------------------------------------------
+// Anchor preamble — cross-file anchor support
+// ---------------------------------------------------------------------------
+
+const PREAMBLE_KEY: &str = "__yamlext_anchor_scope__";
+
+/// Scan `content` for `!include <path>` (simple form only), load each referenced
+/// file, and prepend their raw text as a hidden mapping at the top of the document.
+/// This makes anchors defined in included files visible to the YAML parser when it
+/// processes the main document.
+fn inject_anchor_preamble(content: &str, base_dir: &Path) -> String {
+    let paths = scan_simple_includes(content);
+    if paths.is_empty() {
+        return content.to_string();
+    }
+
+    let mut preamble = format!("{PREAMBLE_KEY}:\n");
+    for (i, path_str) in paths.iter().enumerate() {
+        let file_path = resolve_path(base_dir, path_str);
+        if let Ok(file_content) = fs::read_to_string(&file_path) {
+            preamble.push_str(&format!("  __{i}__:\n"));
+            for line in file_content.lines() {
+                preamble.push_str("    ");
+                preamble.push_str(line);
+                preamble.push('\n');
+            }
+        }
+    }
+
+    format!("{preamble}{content}")
+}
+
+/// Remove the anchor preamble key from the parsed value (it was only needed
+/// during parsing to make anchors visible).
+fn strip_anchor_preamble(value: &mut Value) {
+    if let Value::Mapping(map) = value {
+        map.remove(&Value::String(PREAMBLE_KEY.to_string()));
+    }
+}
+
+/// Scan raw YAML text for file paths referenced by `!include` and `!merge` tags.
+/// Returns unique paths in order of appearance.
+///
+/// Handles:
+///   !include path/to/file.yaml
+///   !merge [path/to/file1.yaml, path/to/file2.yaml]
+///   !include [path/to/file.yaml, "field/path"]   <- first element only
+fn scan_simple_includes(content: &str) -> Vec<String> {
+    let mut seen = HashSet::new();
+    let mut paths = Vec::new();
+
+    for line in content.lines() {
+        // !include <path>  (simple form)
+        if let Some(pos) = line.find("!include ") {
+            let rest = line[pos + 9..].trim();
+            if rest.starts_with('[') {
+                // !include [path, field] — extract first element
+                for p in parse_bracket_paths(rest).into_iter().take(1) {
+                    if seen.insert(p.clone()) { paths.push(p); }
+                }
+            } else if seen.insert(rest.to_string()) {
+                paths.push(rest.to_string());
+            }
+        }
+        // !merge [path1, path2, ...]
+        if let Some(pos) = line.find("!merge ") {
+            let rest = line[pos + 7..].trim();
+            for p in parse_bracket_paths(rest) {
+                if seen.insert(p.clone()) { paths.push(p); }
+            }
+        }
+    }
+    paths
+}
+
+/// Parse a YAML flow sequence literal like `[a.yaml, b.yaml, "c/d"]`
+/// and return the string elements.
+fn parse_bracket_paths(s: &str) -> Vec<String> {
+    let inner = s.trim_start_matches('[').trim_end_matches(']');
+    inner
+        .split(',')
+        .map(|p| p.trim().trim_matches('"').trim_matches('\'').to_string())
+        .filter(|p| !p.is_empty())
+        .collect()
+}
+
+// ---------------------------------------------------------------------------
+// Tag resolution
+// ---------------------------------------------------------------------------
 
 /// Recursively walk and resolve custom tags in a YAML value.
 fn resolve(value: Value, base_dir: &Path) -> Result<Value> {
@@ -229,20 +327,20 @@ fn deep_merge(base: Value, other: Value) -> Result<Value> {
 // ---------------------------------------------------------------------------
 
 fn parse_yaml(content: &str, label: &str) -> Result<Value> {
-    serde_yaml::from_str(content)
-        .map_err(|e| anyhow::anyhow!("{label}: {e}"))
+    serde_yaml::from_str(content).map_err(|e| anyhow::anyhow!("{label}: {e}"))
 }
 
 fn load_yaml(path: &Path, base_dir: &Path) -> Result<Value> {
     let content = fs::read_to_string(path)
         .with_context(|| format!("failed to read '{}'", path.display()))?;
-    let value: Value = parse_yaml(&content, &path.display().to_string())?;
-    // Recursively resolve custom tags in included/merged files,
-    // using that file's own directory as the new base.
+    // Inject anchor preamble so anchors from sub-includes are also visible.
     let new_base = path
         .parent()
         .map(|p| p.to_path_buf())
         .unwrap_or_else(|| base_dir.to_path_buf());
+    let content = inject_anchor_preamble(&content, &new_base);
+    let mut value: Value = parse_yaml(&content, &path.display().to_string())?;
+    strip_anchor_preamble(&mut value);
     resolve(value, &new_base)
 }
 

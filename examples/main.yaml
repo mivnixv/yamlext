@@ -10,3 +10,6 @@ merged_db: !merge [base.yaml, overrides.yaml, extra.yaml]
 # Test !merge sequences
 all_items: !merge [items.yaml, more_items.yaml]
 
+# Test cross-file anchor — &credentials is defined in base.yaml
+reused_credentials: *credentials
+
