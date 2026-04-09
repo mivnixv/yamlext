@@ -12,8 +12,8 @@ curl -fsSL https://raw.githubusercontent.com/mivnixv/yamlext/main/install.sh | s
 
 ```sh
 yamlext input.yaml
-yamlext input.yaml > out.yaml
-cat input.yaml | yamlext -
+yamlext input.yaml --output out.yaml
+yamlext input.yaml --base-dir /path/to/base
 ```
 
 ## Custom Tags
@@ -78,15 +78,6 @@ sha256sum -c checksums.txt
 cargo build --release
 # binary at target/release/yamlext
 ```
-
-### Releasing a new version
-
-```sh
-git tag v1.2.3
-git push origin v1.2.3
-```
-
-GitHub Actions will build all platform binaries and publish a GitHub Release automatically.
 
 ### `!include` notes
 
