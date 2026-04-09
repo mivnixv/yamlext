@@ -1,0 +1,13 @@
+database:
+  pool_size: 10
+  replicas:
+    - host: replica1.db.example.com
+      port: 5432
+    - host: replica2.db.example.com
+      port: 5432
+  options:
+    timeout: 30
+    ssl: true
+    pool:
+      min: 2
+      max: 20

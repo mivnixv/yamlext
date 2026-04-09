@@ -1,0 +1,5 @@
+# Merge mappings (deep, left-to-right)
+merged_db: !merge [data/base.yaml, data/overrides.yaml, data/extra.yaml]
+
+# Merge sequences (concatenated)
+all_items: !merge [data/items.yaml, data/more_items.yaml]

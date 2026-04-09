@@ -1,0 +1,2 @@
+# Root-level merge: the entire document is the deep-merged result.
+!merge [data/base.yaml, data/overrides.yaml, data/extra.yaml]
