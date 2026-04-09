@@ -15,6 +15,11 @@ db_replicas: !include [data/extra.yaml, "database/replicas"]
 # Test !include sequence index field
 first_replica_host: !include [data/extra.yaml, "database/replicas/0/host"]
 
+# Test deeply nested include
+services:
+  database:
+    primary: !include data/base.yaml
+
 # Test !merge mappings
 merged_db: !merge [data/base.yaml, data/overrides.yaml, data/extra.yaml]
 

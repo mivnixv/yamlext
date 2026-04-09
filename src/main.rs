@@ -450,6 +450,17 @@ mod tests {
         assert!(out.contains("value: 42"), "got: {out}");
     }
 
+    // --- deeply nested include (main > two > three: !include) ---
+
+    #[test]
+    fn include_deeply_nested() {
+        let dir = tmp_dir("include_deeply_nested");
+        write(&dir, "leaf.yaml", "value: deep\n");
+        let out = run("main:\n  two:\n    three: !include leaf.yaml\n", &dir);
+        assert!(out.contains("    three:"), "got: {out}");
+        assert!(out.contains("value: deep"), "got: {out}");
+    }
+
     // --- circular include is detected ---
 
     #[test]
@@ -474,5 +485,49 @@ mod tests {
         let input = "# comment\nfoo: bar\nbaz: 123\n";
         let out = run(input, &dir);
         assert_eq!(out, input);
+    }
+
+    // --- examples/main.yaml integration test ---
+
+    #[test]
+    fn examples_main_yaml() {
+        let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let examples = manifest.join("examples");
+        let input = fs::read_to_string(examples.join("main.yaml")).unwrap();
+        let mut seen = HashSet::new();
+        let out = process(&input, &examples, &mut seen).unwrap();
+
+        // !include whole file
+        assert!(out.contains("host: localhost"), "missing host: localhost\n{out}");
+        assert!(out.contains("port: 5432"), "missing port: 5432\n{out}");
+
+        // !include field path
+        assert!(out.contains("city: Wonderland"), "missing city: Wonderland\n{out}");
+
+        // !include sequence index (user0)
+        assert!(out.contains("name: Alice"), "missing name: Alice\n{out}");
+        assert!(out.contains("role: admin"), "missing role: admin\n{out}");
+
+        // !include nested mapping
+        assert!(out.contains("timeout: 30"), "missing timeout: 30\n{out}");
+        assert!(out.contains("ssl: true"), "missing ssl: true\n{out}");
+
+        // !include nested sequence
+        assert!(out.contains("replica1.db.example.com"), "missing replica1\n{out}");
+        assert!(out.contains("replica2.db.example.com"), "missing replica2\n{out}");
+
+        // !include sequence index field (scalar)
+        assert!(out.contains("first_replica_host: replica1.db.example.com"), "missing first_replica_host\n{out}");
+
+        // deeply nested include
+        assert!(out.contains("primary:"), "missing primary:\n{out}");
+
+        // !merge mappings (override wins)
+        assert!(out.contains("host: prod.db.example.com"), "missing prod host\n{out}");
+        assert!(out.contains("pool_size: 10"), "missing pool_size\n{out}");
+
+        // !merge sequences (concatenated)
+        assert!(out.contains("apple"), "missing apple\n{out}");
+        assert!(out.contains("cherry"), "missing cherry\n{out}");
     }
 }
