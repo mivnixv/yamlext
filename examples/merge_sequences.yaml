@@ -1,3 +1,0 @@
-# Root-level merge of multiple sequence files.
-# The entire document output is the concatenated list.
-!merge [items.yaml, more_items.yaml]

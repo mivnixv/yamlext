@@ -1,3 +1,0 @@
-database:
-  host: prod.db.example.com
-  port: 5432

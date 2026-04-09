@@ -288,9 +288,15 @@ fn extract_path(content: &str, path: &str) -> Result<String> {
 
     let mut current = &root;
     for key in path.split('/') {
-        current = current
-            .get(key)
-            .with_context(|| format!("Key '{}' not found (in path '{}')", key, path))?;
+        current = if let Ok(idx) = key.parse::<usize>() {
+            current
+                .get(idx)
+                .with_context(|| format!("Index '{}' out of bounds (in path '{}')", key, path))?
+        } else {
+            current
+                .get(key)
+                .with_context(|| format!("Key '{}' not found (in path '{}')", key, path))?
+        };
     }
 
     let out = serde_yaml::to_string(current).context("Failed to serialize extracted value")?;
@@ -363,6 +369,16 @@ mod tests {
         write(&dir, "addr.yaml", "address:\n  city: Wonderland\n  zip: 12345\n");
         let out = run("city: !include [addr.yaml, \"address/city\"]\n", &dir);
         assert_eq!(out.trim(), "city: Wonderland");
+    }
+
+    // --- !include with sequence index path ---
+
+    #[test]
+    fn include_sequence_index_path() {
+        let dir = tmp_dir("include_sequence_index_path");
+        write(&dir, "users.yaml", "- name: Alice\n  role: admin\n- name: Bob\n  role: viewer\n");
+        let out = run("second_user: !include [users.yaml, \"1/name\"]\n", &dir);
+        assert_eq!(out.trim(), "second_user: Bob");
     }
 
     // --- !include standalone (no key prefix) ---

@@ -21,23 +21,26 @@ yamlext input.yaml --base-dir /path/to/base
 
 ```yaml
 # Entire file
-config: !include path/to/file.yaml
+config: !include data/base.yaml
 
 # Specific nested field
-city: !include [path/to/file.yaml, "address/city"]
+city: !include [data/tags.yaml, "address/city"]
+
+# Sequence index: second user's name
+second_user: !include [data/users.yaml, "1/name"]
 ```
 
 ### `!merge`
 
 ```yaml
 # Merge mappings (deep, left-to-right)
-merged: !merge [base.yaml, overrides.yaml, extras.yaml]
+merged_db: !merge [data/base.yaml, data/overrides.yaml, data/extra.yaml]
 
 # Merge sequences (concatenated)
-all_items: !merge [list1.yaml, list2.yaml]
+all_items: !merge [data/items.yaml, data/more_items.yaml]
 
 # Root-level merge
-!merge [base.yaml, overrides.yaml]
+!merge [data/base.yaml, data/overrides.yaml]
 ```
 
 ---
@@ -55,21 +58,7 @@ curl -fsSL https://raw.githubusercontent.com/mivnixv/yamlext/main/install.sh | V
 
 ### Manual download
 
-Pre-built binaries are available on the [Releases](https://github.com/mivnixv/yamlext/releases) page:
-
-| Platform | Binary |
-|----------|--------|
-| Linux x86_64 | `yamlext-linux-x86_64` |
-| Linux aarch64 | `yamlext-linux-aarch64` |
-| macOS x86_64 | `yamlext-macos-x86_64` |
-| macOS aarch64 (Apple Silicon) | `yamlext-macos-aarch64` |
-| Windows x86_64 | `yamlext-windows-x86_64.exe` |
-
-Each release includes `checksums.txt` for verification:
-
-```sh
-sha256sum -c checksums.txt
-```
+Pre-built binaries are available on the [Releases](https://github.com/mivnixv/yamlext/releases) page.
 
 ### Build from source
 
@@ -81,7 +70,6 @@ cargo build --release
 ### `!include` notes
 
 - Paths are relative to the file containing the tag (so included files can have their own relative includes)
-- Field paths support sequence indices: `!include [file.yaml, "items/0/name"]`
 
 ### `!merge` notes
 
@@ -96,5 +84,12 @@ See the [`examples/`](examples/) directory:
 | File | Description |
 |------|-------------|
 | [main.yaml](examples/main.yaml) | All tags used as nested values |
-| [merge_mappings.yaml](examples/merge_mappings.yaml) | Root-level merge of mappings |
-| [merge_sequences.yaml](examples/merge_sequences.yaml) | Root-level merge of sequences |
+| [merge.yaml](examples/merge.yaml) | Merge examples (mappings and sequences) |
+| [root_level_merge.yaml](examples/root_level_merge.yaml) | Root-level merge (entire document is the result) |
+| [data/base.yaml](examples/data/base.yaml) | Base database config |
+| [data/overrides.yaml](examples/data/overrides.yaml) | Overrides for database host/port |
+| [data/extra.yaml](examples/data/extra.yaml) | Extra database fields |
+| [data/tags.yaml](examples/data/tags.yaml) | Name and address data |
+| [data/items.yaml](examples/data/items.yaml) | First sequence of items |
+| [data/more_items.yaml](examples/data/more_items.yaml) | Second sequence of items |
+| [data/users.yaml](examples/data/users.yaml) | Sequence of user objects |

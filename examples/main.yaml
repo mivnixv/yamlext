@@ -1,12 +1,23 @@
 # Test !include (whole file)
-config: !include base.yaml
+config: !include data/base.yaml
+credentials: *credentials
+user0: !include [data/users.yaml, "0"]
 
 # Test !include with field path
-city: !include [tags.yaml, "address/city"]
+city: !include [data/tags.yaml, "address/city"]
+
+# Test !include nested mapping
+db_options: !include [data/extra.yaml, "database/options"]
+
+# Test !include nested sequence
+db_replicas: !include [data/extra.yaml, "database/replicas"]
+
+# Test !include sequence index field
+first_replica_host: !include [data/extra.yaml, "database/replicas/0/host"]
 
 # Test !merge mappings
-merged_db: !merge [base.yaml, overrides.yaml, extra.yaml]
+merged_db: !merge [data/base.yaml, data/overrides.yaml, data/extra.yaml]
 
 # Test !merge sequences
-all_items: !merge [items.yaml, more_items.yaml]
+all_items: !merge [data/items.yaml, data/more_items.yaml]
 
