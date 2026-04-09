@@ -9,10 +9,6 @@ struct Cli {
     /// Input YAML file to process
     input: PathBuf,
 
-    /// Output file (defaults to stdout)
-    #[arg(short, long)]
-    output: Option<PathBuf>,
-
     /// Base directory for resolving include/merge paths (defaults to input file's directory)
     #[arg(long)]
     base_dir: Option<PathBuf>,
@@ -42,14 +38,7 @@ fn main() -> Result<()> {
 
     let result = process(&content, &base_dir, &mut seen)?;
 
-    match &cli.output {
-        Some(path) => {
-            std::fs::write(path, &result)
-                .with_context(|| format!("Failed to write {:?}", path))?;
-            eprintln!("[yamlext] written to {}", path.display());
-        }
-        None => print!("{}", result),
-    }
+    print!("{}", result);
 
     eprintln!("[yamlext] done ({} bytes)", result.len());
     Ok(())

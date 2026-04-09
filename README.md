@@ -12,7 +12,6 @@ curl -fsSL https://raw.githubusercontent.com/mivnixv/yamlext/main/install.sh | s
 
 ```sh
 yamlext input.yaml
-yamlext input.yaml --output out.yaml
 yamlext input.yaml --base-dir /path/to/base
 ```
 
