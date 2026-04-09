@@ -4,10 +4,59 @@ A CLI tool that extends YAML with `!include` and `!merge` custom tags.
 
 ## Install
 
+### curl (Linux and macOS)
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/mivnixv/yamlext/main/install.sh | sh
+```
+
+Installs to `/usr/local/bin` by default. Override with `INSTALL_DIR`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/mivnixv/yamlext/main/install.sh | INSTALL_DIR=~/.local/bin sh
+```
+
+Pin to a specific version with `VERSION`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/mivnixv/yamlext/main/install.sh | VERSION=v1.0.0 sh
+```
+
+### Manual download
+
+Download a pre-built binary from the [Releases](https://github.com/mivnixv/yamlext/releases) page:
+
+| Platform | Binary |
+|----------|--------|
+| Linux x86_64 | `yamlext-linux-x86_64` |
+| Linux aarch64 | `yamlext-linux-aarch64` |
+| macOS x86_64 | `yamlext-macos-x86_64` |
+| macOS aarch64 (Apple Silicon) | `yamlext-macos-aarch64` |
+| Windows x86_64 | `yamlext-windows-x86_64.exe` |
+
+Each release also includes a `checksums.txt` for verification:
+
+```sh
+sha256sum -c checksums.txt
+```
+
+### Build from source
+
 ```sh
 cargo build --release
 # binary at target/release/yamlext
 ```
+
+## Releasing a new version
+
+Tag a commit with a semver version to trigger the release pipeline:
+
+```sh
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+GitHub Actions will build all platform binaries and publish them as a GitHub Release automatically.
 
 ## Usage
 
