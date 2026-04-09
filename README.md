@@ -4,27 +4,59 @@ A CLI tool that extends YAML with `!include` and `!merge` custom tags.
 
 ## Install
 
-### curl (Linux and macOS)
-
 ```sh
 curl -fsSL https://raw.githubusercontent.com/mivnixv/yamlext/main/install.sh | sh
 ```
 
-Installs to `/usr/local/bin` by default. Override with `INSTALL_DIR`:
+## Usage
+
+```sh
+yamlext input.yaml
+yamlext input.yaml > out.yaml
+cat input.yaml | yamlext -
+```
+
+## Custom Tags
+
+### `!include`
+
+```yaml
+# Entire file
+config: !include path/to/file.yaml
+
+# Specific nested field
+city: !include [path/to/file.yaml, "address/city"]
+```
+
+### `!merge`
+
+```yaml
+# Merge mappings (deep, left-to-right)
+merged: !merge [base.yaml, overrides.yaml, extras.yaml]
+
+# Merge sequences (concatenated)
+all_items: !merge [list1.yaml, list2.yaml]
+
+# Root-level merge
+!merge [base.yaml, overrides.yaml]
+```
+
+---
+
+## Advanced
+
+### Install options
+
+Override install directory or pin a version:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/mivnixv/yamlext/main/install.sh | INSTALL_DIR=~/.local/bin sh
-```
-
-Pin to a specific version with `VERSION`:
-
-```sh
 curl -fsSL https://raw.githubusercontent.com/mivnixv/yamlext/main/install.sh | VERSION=v1.0.0 sh
 ```
 
 ### Manual download
 
-Download a pre-built binary from the [Releases](https://github.com/mivnixv/yamlext/releases) page:
+Pre-built binaries are available on the [Releases](https://github.com/mivnixv/yamlext/releases) page:
 
 | Platform | Binary |
 |----------|--------|
@@ -34,7 +66,7 @@ Download a pre-built binary from the [Releases](https://github.com/mivnixv/yamle
 | macOS aarch64 (Apple Silicon) | `yamlext-macos-aarch64` |
 | Windows x86_64 | `yamlext-windows-x86_64.exe` |
 
-Each release also includes a `checksums.txt` for verification:
+Each release includes `checksums.txt` for verification:
 
 ```sh
 sha256sum -c checksums.txt
@@ -47,71 +79,27 @@ cargo build --release
 # binary at target/release/yamlext
 ```
 
-## Releasing a new version
-
-Tag a commit with a semver version to trigger the release pipeline:
+### Releasing a new version
 
 ```sh
 git tag v1.2.3
 git push origin v1.2.3
 ```
 
-GitHub Actions will build all platform binaries and publish them as a GitHub Release automatically.
+GitHub Actions will build all platform binaries and publish a GitHub Release automatically.
 
-## Usage
+### `!include` notes
 
-```sh
-yamlext input.yaml              # process and print to stdout
-yamlext input.yaml > out.yaml   # redirect output to file
-cat input.yaml | yamlext -      # read from stdin
-```
+- Paths are relative to the file containing the tag (so included files can have their own relative includes)
+- Field paths support sequence indices: `!include [file.yaml, "items/0/name"]`
 
-## Custom Tags
+### `!merge` notes
 
-### `!include`
+- Mappings: later files override earlier ones, recursively
+- Sequences: items are appended in order
+- Merging a mapping with a sequence is an error
 
-Include the contents of another YAML file.
-
-```yaml
-# Include entire file
-config: !include path/to/file.yaml
-
-# Include a specific nested field (slash-separated path)
-city: !include [path/to/file.yaml, "address/city"]
-
-# Sequence indices are supported in the field path
-first: !include [path/to/file.yaml, "items/0"]
-```
-
-Paths are relative to the file that contains the `!include` tag, so included files can use their own relative includes.
-
-### `!merge`
-
-Merge multiple YAML files into one. All files must be the same collection type.
-
-**Mappings** — deep-merged left-to-right; later files override earlier ones:
-
-```yaml
-# As a value
-merged: !merge [base.yaml, overrides.yaml, extras.yaml]
-
-# At the root level — the whole document is the merge result
-!merge [base.yaml, overrides.yaml, extras.yaml]
-```
-
-**Sequences** — concatenated left-to-right:
-
-```yaml
-# As a value
-all_items: !merge [list1.yaml, list2.yaml]
-
-# At the root level
-!merge [list1.yaml, list2.yaml]
-```
-
-Merging a mapping with a sequence is an error.
-
-## Examples
+### Examples
 
 See the [`examples/`](examples/) directory:
 
