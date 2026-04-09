@@ -42,7 +42,8 @@ fn main() -> Result<()> {
         (content, base_dir)
     };
 
-    let value: Value = serde_yaml::from_str(&content).context("failed to parse YAML")?;
+    let label = if cli.input == "-" { "<stdin>".to_string() } else { cli.input.clone() };
+    let value: Value = parse_yaml(&content, &label)?;
     let resolved = resolve(value, &base_dir)?;
 
     print!("{}", serde_yaml::to_string(&resolved)?);
@@ -227,11 +228,15 @@ fn deep_merge(base: Value, other: Value) -> Result<Value> {
 // Helpers
 // ---------------------------------------------------------------------------
 
+fn parse_yaml(content: &str, label: &str) -> Result<Value> {
+    serde_yaml::from_str(content)
+        .map_err(|e| anyhow::anyhow!("{label}: {e}"))
+}
+
 fn load_yaml(path: &Path, base_dir: &Path) -> Result<Value> {
     let content = fs::read_to_string(path)
         .with_context(|| format!("failed to read '{}'", path.display()))?;
-    let value: Value =
-        serde_yaml::from_str(&content).with_context(|| format!("parsing '{}'", path.display()))?;
+    let value: Value = parse_yaml(&content, &path.display().to_string())?;
     // Recursively resolve custom tags in included/merged files,
     // using that file's own directory as the new base.
     let new_base = path
