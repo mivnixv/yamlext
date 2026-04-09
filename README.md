@@ -1,4 +1,4 @@
-# yamlext ![Tests](https://github.com/mivnixv/yamlext/actions/workflows/release.yml/badge.svg?branch=main)
+# yamlext ![Main Build](https://github.com/mivnixv/yamlext/actions/workflows/test.yml/badge.svg?branch=main)
 
 A CLI tool that extends YAML with `!include` and `!merge` custom tags.
 
