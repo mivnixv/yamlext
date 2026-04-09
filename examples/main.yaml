@@ -1,0 +1,12 @@
+# Test !include (whole file)
+config: !include base.yaml
+
+# Test !include with field path
+city: !include [tags.yaml, "address/city"]
+
+# Test !merge mappings
+merged_db: !merge [base.yaml, overrides.yaml, extra.yaml]
+
+# Test !merge sequences
+all_items: !merge [items.yaml, more_items.yaml]
+

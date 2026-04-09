@@ -1,0 +1,3 @@
+# Root-level merge of multiple mapping files.
+# The entire document output is the deep-merged result.
+!merge [base.yaml, overrides.yaml, extra.yaml]
